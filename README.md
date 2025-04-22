@@ -7,7 +7,7 @@ Bygget for Språkrådet med data fra Nasjonalbiblioteket – og litt hjelp fra e
 
 ## 🌐 Live app
 
-👉 [Åpne appen i nettleseren](https://<your-username>.github.io/<repo-name>/)
+👉 [Åpne appen i nettleseren](https://yoonsen.github.io/Spraaktrender_utdanning/)
 
 Installerbar som PWA ✔️ Fungerer offline ✔️ Auto-oppdatering ✔️
 
