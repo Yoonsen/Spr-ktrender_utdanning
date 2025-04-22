@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Språktrender i lærebøker</title>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light text-dark">
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">Språktrender i lærebøker (2013–)</h2>
+
+    <div class="row mb-4">
+      <div class="col-md-2">
+        <label for="fromYear" class="form-label">Fra år</label>
+        <input type="number" id="fromYear" class="form-control" value="2013" min="2010" max="2025" />
+      </div>
+      <div class="col-md-2">
+        <label for="toYear" class="form-label">Til år</label>
+        <input type="number" id="toYear" class="form-control" value="2025" min="2010" max="2025" />
+      </div>
+      <div class="col-md-5">
+        <label for="subject" class="form-label">Emneord</label>
+        <input type="text" id="subject" class="form-control" placeholder="f.eks. matematikk" />
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary w-100" onclick="fetchData()">Hent data</button>
+      </div>
+    </div>
+
+    <div id="chart" style="width:100%;max-width:1000px;height:600px;"></div>
+  </div>
+
+  <script>
+    async function fetchData() {
+      const fromYear = parseInt(document.getElementById('fromYear').value);
+      const toYear = parseInt(document.getElementById('toYear').value);
+      const subject = document.getElementById('subject').value;
+
+      const payload = {
+        doctype: "digibok",
+        from_year: fromYear,
+        to_year: toYear,
+        subject: subject,
+        limit: 30000
+      };
+
+      const response = await fetch("https://api.nb.no/dhlab/build_corpus", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const corpus = await response.json();
+      window.corpus = corpus;
+      const raw = corpus;
+
+      const keys = Object.keys(raw);
+      const length = raw.dhlabid ? Object.keys(raw.dhlabid).length : 0;
+      const df = Array.from({ length }, (_, i) => {
+        const row = {};
+        keys.forEach(k => row[k] = raw[k][i]);
+        return row;
+      });
+      window.df = df;
+
+      const counts = {};
+      df.forEach(entry => {
+        const year = entry.year;
+        const langs = entry.langs ? entry.langs.split("/").map(s => s.trim()) : [];
+        langs.forEach(lang => {
+          if (year && lang) {
+            if (!counts[lang]) counts[lang] = {};
+            counts[lang][year] = (counts[lang][year] || 0) + 1;
+          }
+        });
+      });
+
+      const years = Array.from(new Set(df.map(row => row.year))).sort();
+      const traces = Object.keys(counts)
+        .filter(lang => ["nob", "nno", "eng"].includes(lang))
+        .map(lang => ({
+          x: years,
+          y: years.map(y => counts[lang][y] || 0),
+          name: lang,
+          mode: 'lines+markers'
+        }));
+
+      const layout = {
+        title: 'Antall faglitterære lærebøker per språk per år',
+        xaxis: { title: 'År', dtick: 1 },
+        yaxis: { title: 'Antall bøker' },
+        hovermode: 'x unified',
+        legend: { orientation: 'h', y: -0.3 },
+        margin: { t: 80 }
+      };
+
+      Plotly.newPlot('chart', traces, layout);
+    }
+  </script>
+</body>
+</html>
